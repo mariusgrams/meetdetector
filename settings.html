@@ -1,0 +1,135 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meet Detector Settings</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .section {
+      border: 1px solid #ddd;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+    }
+    .section.disabled {
+      opacity: 0.5;
+    }
+    .section h2 {
+      margin-top: 0;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+    }
+    .slider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .slider input[type="checkbox"] {
+      appearance: none;
+      width: 40px;
+      height: 20px;
+      background: #ddd;
+      border-radius: 10px;
+      position: relative;
+      outline: none;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .slider input[type="checkbox"]:checked {
+      background: #007bff;
+    }
+    .slider input[type="checkbox"]::before {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      background: white;
+      border-radius: 50%;
+      top: 1px;
+      left: 1px;
+      transition: transform 0.3s;
+    }
+    .slider input[type="checkbox"]:checked::before {
+      transform: translateX(20px);
+    }
+    button {
+      padding: 10px 15px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background-color: #ddd;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <h1>Meet Detector Settings</h1>
+
+  <!-- MQTT Section -->
+  <div class="section" id="mqtt-section">
+    <h2>MQTT Notifications</h2>
+    <div class="form-group slider">
+	  <label for="mqtt-enabled">Enable MQTT Notifications</label>
+      <input type="checkbox" id="mqtt-enabled" />
+    </div>
+    <div id="mqtt-settings">
+      <div class="form-group">
+        <label for="mqtt-broker">MQTT Broker URL</label>
+        <input type="text" id="mqtt-broker" placeholder="e.g., ws://broker.hivemq.com:8000/mqtt" />
+      </div>
+      <div class="form-group">
+        <label for="mqtt-topic">MQTT Topic</label>
+        <input type="text" id="mqtt-topic" placeholder="e.g., notifications/topic" />
+      </div>
+      <div class="form-group">
+        <label for="mqtt-client-id">MQTT Client ID</label>
+        <input type="text" id="mqtt-client-id" placeholder="e.g., unique-client-id" />
+      </div>
+      <div class="form-group">
+        <label for="mqtt-username">MQTT Username (optional)</label>
+        <input type="text" id="mqtt-username" placeholder="e.g., user123" />
+      </div>
+      <div class="form-group">
+        <label for="mqtt-password">MQTT Password (optional)</label>
+        <input type="password" id="mqtt-password" placeholder="e.g., yourpassword" />
+      </div>
+    </div>
+  </div>
+
+  <!-- HTTP POST Section -->
+  <div class="section" id="http-section">
+    <h2>HTTP POST Notifications</h2>
+    <div class="form-group slider">
+	  <label for="http-enabled">Enable HTTP POST Notifications</label>
+      <input type="checkbox" id="http-enabled" />
+    </div>
+    <div id="http-settings">
+      <div class="form-group">
+        <label for="http-url">HTTP POST URL</label>
+        <input type="text" id="http-url" placeholder="e.g., https://example.com/api/notify" />
+      </div>
+    </div>
+  </div>
+
+  <button id="save-settings">Save Settings</button>
+  
+  <script src="settings.js"></script>
+</body>
+</html>
