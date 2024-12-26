@@ -9,10 +9,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const saveButton = document.getElementById("save-settings");
 
-      // Generate a random Client ID for MQTT if not already set
+      // generate a random Client ID for MQTT if not already set
       const generateRandomClientId = () => `client-${Math.random().toString(16).substring(2, 10)}`;
 
-      // Load saved settings
+      // load saved settings
       chrome.storage.local.get([
         "mqttEnabled", "mqttBroker", "mqttTopic", "mqttClientId", "mqttUsername", "mqttPassword", "httpEnabled", "httpUrl", "httpPayload", "httpParameterType", "httpParameterValue"
       ], (settings) => {
@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
         updateSectionVisibility();
       });
 
-      // Toggle settings visibility
+      // toggle settings visibility
       mqttEnabledCheckbox.addEventListener("change", updateSectionVisibility);
       httpEnabledCheckbox.addEventListener("change", updateSectionVisibility);
 
@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
         httpSettings.style.display = httpEnabledCheckbox.checked ? "block" : "none";
       }
 
-      // Save settings
+      // save settings
       saveButton.addEventListener("click", () => {
         const settings = {
           mqttEnabled: mqttEnabledCheckbox.checked,
@@ -55,5 +55,11 @@ document.addEventListener("DOMContentLoaded", () => {
         chrome.storage.local.set(settings, () => {
           alert("Settings saved successfully!");
         });
+		
+		// notify background class
+		chrome.runtime.sendMessage('updatedSettings', (response) => {
+          console.log('received user data', response);
+        });
+		
       });
     });

@@ -1,3 +1,44 @@
+importScripts('libs/mqtt.min.js');
+const MQTT = mqtt;
+mqttClient = null;
+
+function dissconnectMqtt() {
+  if (mqttClient) {
+    mqttClient.end();
+    console.log('MQTT disconnected');
+    mqttClient = null;
+  }
+}
+
+function connectToMqtt() {
+  chrome.storage.local.get(["mqttEnabled", "mqttBroker", "mqttClientId", "mqttUsername", "mqttPassword"], (settings) => {
+	// only connect when MQTT is enabled
+	const isMqttEnabled = settings.mqttEnabled == true;
+	console.log(`is MQTT enabled: ${isMqttEnabled}`);
+	if (isMqttEnabled) {
+	  mqttClient = MQTT.connect(settings.mqttBroker, {
+        clientId: `${settings.mqttClientId}`,
+        keepalive: 2,
+	    username: `${settings.mqttUsername}`,
+        password: `${settings.mqttPassword}`
+      });	
+	  
+      mqttClient.on('connect', () => console.log('Connected with MQTT broker!'));
+      mqttClient.on('error', (err) => console.error('Error:', err));
+	}
+  });
+}
+
+function sendMqttMessage(isInMeet) {
+  chrome.storage.local.get(["mqttEnabled", "mqttBroker", "mqttTopic"], (settings) => { 
+    const isMqttEnabled = settings.mqttEnabled == true;
+    if (isMqttEnabled && mqttClient) {
+	  mqttClient.publish(settings.mqttTopic, `${isInMeet}`);
+	  console.log(`sendMqttMessage() published`);  
+	}
+  });
+}
+
 function sendHttpPostMessage(isInMeet) {
   chrome.storage.local.get(["httpEnabled", "httpUrl"], (settings) => {
 	// only send notification when HTTP Post is enabled
@@ -29,7 +70,7 @@ function checkMeetState() {
 	    tabs.forEach((tab) => {
 		  const newIsGoogleMeet = tab.url.includes("https://meet.google.com/");
 		  
-		  // only set state when we have not yet found a meeting side
+		  // only set state when we have not yet found a meeting
 		  if (newIsInMeetingState == false) 
 		  {  
 			newIsInMeetingState = newIsGoogleMeet;
@@ -43,6 +84,7 @@ function checkMeetState() {
 			
 		  // send new state
 		  sendHttpPostMessage(newIsInMeetingState);
+		  sendMqttMessage(newIsInMeetingState);
 		  
 		  // save new state
 		  chrome.storage.local.set({"isInMeeting": newIsInMeetingState}, () => {
@@ -66,4 +108,14 @@ chrome.tabs.onRemoved.addListener((tabId, windowInfo) => {
   checkMeetState();	
 });
 
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message === 'updatedSettings') {
+    // settings changed, we need to reconnect to mqtt broker
+	dissconnectMqtt();
+	connectToMqtt();
+  }
+});
+
+// start-up
+connectToMqtt();
 checkMeetState();
