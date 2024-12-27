@@ -1,6 +1,7 @@
 importScripts('libs/mqtt.min.js');
 const MQTT = mqtt;
 mqttClient = null;
+isRunning = false;
 
 function dissconnectMqtt() {
   if (mqttClient) {
@@ -14,7 +15,6 @@ function connectToMqtt() {
   chrome.storage.local.get(["mqttEnabled", "mqttBroker", "mqttClientId", "mqttUsername", "mqttPassword"], (settings) => {
 	// only connect when MQTT is enabled
 	const isMqttEnabled = settings.mqttEnabled == true;
-	console.log(`is MQTT enabled: ${isMqttEnabled}`);
 	if (isMqttEnabled) {
 	  mqttClient = MQTT.connect(settings.mqttBroker, {
         clientId: `${settings.mqttClientId}`,
@@ -29,12 +29,13 @@ function connectToMqtt() {
   });
 }
 
-function sendMqttMessage(isInMeet) {
+function sendMqttMessage(isInMeet, meetingDuration) {
   chrome.storage.local.get(["mqttEnabled", "mqttBroker", "mqttTopic"], (settings) => { 
     const isMqttEnabled = settings.mqttEnabled == true;
     if (isMqttEnabled && mqttClient) {
-	  mqttClient.publish(settings.mqttTopic, `${isInMeet}`);
-	  console.log(`sendMqttMessage() published`);  
+	  mqttClient.publish(`${settings.mqttTopic}/inMeeting`, `${isInMeet}`);
+	  mqttClient.publish(`${settings.mqttTopic}/duration`, `${meetingDuration}`);
+	  console.log(`Mqtt published, inMeet: ${isInMeet}, duration: ${meetingDuration}s`);  
 	}
   });
 }
@@ -60,9 +61,15 @@ function sendHttpPostMessage(isInMeet) {
 }
 
 function checkMeetState() {
+  if (isRunning == true) {
+	return;
+  } else {
+	isRunning = true;
+  }	  
+	
   // read old state
-  chrome.storage.local.get(["isInMeeting"], function(state){
-	  const oldIsInMeeting = state.isInMeeting;
+  chrome.storage.local.get(["isInMeeting", "timestampMeetingStarted"], (meetingState) => {
+	  const oldIsInMeeting = meetingState.isInMeeting;
 	  newIsInMeetingState = false;
 	  
 	  // check all tabs if we are in a meeting
@@ -81,14 +88,30 @@ function checkMeetState() {
 		  if (newIsInMeetingState == oldIsInMeeting) {
 			  return;
 		  }
+		  
+		  // get duration in meeting
+		  meetingDuration = 0;
+		  if (newIsInMeetingState == true)
+		  {
+			  timestampMeetingStarted = Date.now();
+		  } else {
+			  // not in meeting anymore --> calculate duration
+			  meetingDuration = Math.trunc((Date.now() - timestampMeetingStarted) / 1000); //ms to sec
+		  }
+		  
+		  const meetingState = {
+			  isInMeeting: newIsInMeetingState,
+			  timestampMeetingStarted: timestampMeetingStarted,
+			};
 			
 		  // send new state
 		  sendHttpPostMessage(newIsInMeetingState);
-		  sendMqttMessage(newIsInMeetingState);
+		  sendMqttMessage(newIsInMeetingState, meetingDuration);
 		  
 		  // save new state
-		  chrome.storage.local.set({"isInMeeting": newIsInMeetingState}, () => {
-			console.log(`Meeting state changed to: ${newIsInMeetingState}`);
+		  chrome.storage.local.set(meetingState, () => {
+			console.log(`Meeting state changed to: ${meetingState.isInMeeting}`);
+			isRunning = false;
 		  });
       });
   });
